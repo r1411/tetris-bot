@@ -164,7 +164,7 @@ print_matrix_list([]).
 print_matrix_list([H|T]) :- print_matrix(H), nl, print_matrix_list(T).
 
 % Перебрать все числа в диапазоне от Low до High (включительно)
-range(Low, Low, High).
+range(Low, Low, _).
 range(Out,Low,High) :- NewLow is Low+1, NewLow =< High, range(Out, NewLow, High).
 
 % Генерация списка с одинаковыми элементами
@@ -183,6 +183,21 @@ join([X|Y], Z, [X|W]) :- join(Y, Z, W).
 matrix_add(M1, M2, M3) :- maplist(maplist(sum), M1, M2, M3).
 sum(X,Y,Z) :- Z is X+Y.
 
+% Отзеркалить список
+reverse([],Z,Z).
+reverse([H|T],Z,Acc) :- reverse(T,Z,[H|Acc]).
+reverse(In, Out) :- reverse(In, Out, []).
+
+% Количество вхождений элемента в список
+count([],_,0).
+count([X|T],X,Y):- count(T,X,Z), Y is 1+Z.
+count([X1|T],X,Z):- X1\=X,count(T,X,Z), !.
+
+% Значение в матрице по индексу [Row, Col]
+cell_value(Matrix, Row, Col, Value) :-
+    nth0(Row, Matrix, TheRow),
+    nth0(Col, TheRow, Value), !.
+
 
 get_free_cells(_, _, Result, Result, 1) :- !.
 get_free_cells(Matrix, _, Result, CurrentIndex, _) :- length(Matrix, RowsCnt), CurrentIndex is (RowsCnt - 1), Result is RowsCnt, !.
@@ -198,7 +213,7 @@ get_free_cells(Matrix, ColumnIdx, Result, CurrentIndex, _) :-
 get_free_cells([FirstRow|Other], ColumnIdx, Result) :- nth0(ColumnIdx, FirstRow, CurrentValue), get_free_cells([FirstRow|Other], ColumnIdx, Result, 0, CurrentValue), !.
 
 
-get_descent_count(FieldMatrix, ShpW, ShpH, ShapeEmptyCells, ColumnIdx, CurrentShapeColumnIdx, Result, Result) :- CurrentShapeColumnIdx is (ShpW - 1), !.
+get_descent_count(_, ShpW, _, _, _, CurrentShapeColumnIdx, Result, Result) :- CurrentShapeColumnIdx is ShpW, !.
 get_descent_count(FieldMatrix, ShpW, ShpH, ShapeEmptyCells, ColumnIdx, CurrentShapeColumnIdx, CurrentMinDescent, Result) :-
     ColOffset is ColumnIdx + CurrentShapeColumnIdx,
     get_free_cells(FieldMatrix, ColOffset, FC),
@@ -288,13 +303,98 @@ place_shape(FieldMatrix, FieldWidth, FieldHeight, ShapeVariant, Column, ResultFi
     matrix_add(FieldMatrix, AddingMatrix, ResultField).
 
 
-% Вывести все конечные позиции фигуры на игровом поле
-write_all_placements(FieldMatrix, Shape) :-
+% Максимальная высота накопившихся на поле блоков
+% FieldMatrix - Матрица игрового поля
+% FieldWidth - Ширина игрового поля
+% FieldHeight - Высота игрового поля
+% Result - Выходная переменная, максимальная высота блоков на поле.
+garbage_height(FieldMatrix, FieldWidth, FieldHeight, Result) :-
+    same_numbers_list(0, FieldWidth, EmptyRow),
+    reverse(FieldMatrix, UpsideDownFieldMatrix),
+    (nth0(Result, UpsideDownFieldMatrix, EmptyRow); Result is FieldHeight), !.
+
+
+% Количество собранных линий на поле
+% FieldMatrix - Матрица игрового поля
+% FieldWidth - Ширина игрового поля
+% Result - Выходная переменная, количество полных линий
+full_lines_count(FieldMatrix, FieldWidth, Result) :-
+    same_numbers_list(1, FieldWidth, FullRow),
+    count(FieldMatrix, FullRow, Result).
+
+
+% Является ли ячейка матрицы по индексу [Row, Col] дырой
+% FieldMatrix - Матрица игрового поля
+% Row - Индекс строки
+% Col - Индекс столбца
+is_hole(FieldMatrix, Row, Col) :-
+    Row2 is Row + 1,
+    cell_value(FieldMatrix, Row, Col, ValueTop), ValueTop is 1,
+    cell_value(FieldMatrix, Row2, Col, ValueBottom), ValueBottom is 0, !.
+
+
+% Возвращает true столько раз, сколько дырок на поле
+% FieldMatrix - Матрица игрового поля
+% FieldWidth - Ширина игрового поля
+% FieldHeight - Высота игрового поля
+find_hole(FieldMatrix, FieldWidth, FieldHeight) :-
+    WidthLimit is FieldWidth - 1, HeightLimit is FieldHeight - 2,
+    range(RowIdx, 0, HeightLimit), range(ColIdx, 0, WidthLimit),
+    Row is RowIdx, Col is ColIdx,
+    is_hole(FieldMatrix, Row, Col).
+
+
+% Получить количество дырок на игровом поле
+% FieldMatrix - Матрица игрового поля
+% FieldWidth - Ширина игрового поля
+% FieldHeight - Высота игрового поля
+% Result - Выходная переменная, количество дырок на поле
+count_holes(FieldMatrix, FieldWidth, FieldHeight, Result) :- 
+    aggregate_all(count, find_hole(FieldMatrix, FieldWidth, FieldHeight), Result), !.
+
+
+% Оценить текущее игровое поле относительно изначального
+% NewField - Матрица текущего игрового поля
+% OldField - Матрица прошлого игрового поля
+% FieldWidth - Ширина игрового поля
+% FieldHeight - Высота игрового поля
+% Score - Выходная переменная, оценка. Чем выше, тем лучше.
+field_score(NewField, OldField, FieldWidth, FieldHeight, Score) :-
+    count_holes(OldField, FieldWidth, FieldHeight, OldHolesCount),
+    count_holes(NewField, FieldWidth, FieldHeight, NewHolesCount),
+    garbage_height(OldField, FieldWidth, FieldHeight, OldGarbageHeight),
+    garbage_height(NewField, FieldWidth, FieldHeight, NewGarbageHeight),
+    full_lines_count(NewField, FieldWidth, NewFullLines),
+    FactorHoles is (OldHolesCount - NewHolesCount) * 100,
+    FactorGarbage is (OldGarbageHeight  - NewGarbageHeight) * 10,
+    FactorFullLines is NewFullLines * 80,
+    Score is FactorHoles + FactorGarbage + FactorFullLines.
+
+
+% Получить все возможные конечные позиции фигуры и их оценку
+% FieldMatrix - Матрица игрового поля
+% Shape - Тип фигуры
+% ResultField - Выходная переменная, результирующее поле
+% Score - Выходная переменная, оценка результирующей позиции
+% ShapeVariant - Выходная переменная, ротация фигуры
+% PlacementColumn - Выходная переменная, столбец, в котором находится левый край фигуры
+all_placements(FieldMatrix, Shape, ResultField, Score, ShapeVariant, PlacementColumn) :-
     length(FieldMatrix, FieldHeight),
     nth0(0, FieldMatrix, FieldFirstRow),
     length(FieldFirstRow, FieldWidth),
     shape_variant(Shape, ShapeVariant),
     get_valid_placement_columns(ShapeVariant, FieldWidth, PlacementColumn),
     place_shape(FieldMatrix, FieldWidth, FieldHeight, ShapeVariant, PlacementColumn, ResultField),
-    write("Placing "), write(ShapeVariant), write(" in the column #"), write(PlacementColumn), nl,
-    print_matrix(ResultField), nl, fail.
+    field_score(ResultField, FieldMatrix, FieldWidth, FieldHeight, Score).
+
+
+% Выбрать лучший вариант поля с наибольшим количеством очков 
+% FieldMatrix - Матрица игрового поля
+% Shape - Тип фигуры
+% MaxResultField - Выходная переменная, результирующее поле
+% MaxScore - Выходная переменная, оценка результирующей позиции
+% MaxShapeVariant - Выходная переменная, ротация фигуры
+% MaxPlacementColumn - Выходная переменная, столбец, в котором находится левый край фигуры
+best_placement(FieldMatrix, Shape, MaxResultField, MaxScore, MaxShapeVariant, MaxPlacementColumn) :-
+    setof(Score-ResultField-ShapeVariant-PlacementColumn, all_placements(FieldMatrix, Shape, ResultField, Score, ShapeVariant, PlacementColumn), R),
+    reverse(R, [MaxScore-MaxResultField-MaxShapeVariant-MaxPlacementColumn|_]), !.
