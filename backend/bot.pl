@@ -398,3 +398,32 @@ all_placements(FieldMatrix, Shape, ResultField, Score, ShapeVariant, PlacementCo
 best_placement(FieldMatrix, Shape, MaxResultField, MaxScore, MaxShapeVariant, MaxPlacementColumn) :-
     setof(Score-ResultField-ShapeVariant-PlacementColumn, all_placements(FieldMatrix, Shape, ResultField, Score, ShapeVariant, PlacementColumn), R),
     reverse(R, [MaxScore-MaxResultField-MaxShapeVariant-MaxPlacementColumn|_]), !.
+
+% HTTP Сервер
+:- use_module(library(http/http_server)).
+:- use_module(library(http/http_json)).
+:- use_module(library(http/json_convert)).
+
+:- json_object error_object(error:any).
+:- json_object input_object(field_matrix:any, shape:any).
+:- json_object placement_object(rotation_variant:any, column:any).
+:- json_object response_object(response:any).
+
+:- initialization
+    http_server([port(8765)]).
+
+:- http_handler(root(.), home_page, []).
+:- http_handler(root(solve), solve_request, [method(post)]).
+
+home_page(_Request) :-
+    reply_html_page(
+	    title('Tetris bot'),
+	    [h1('Bot is running!')]
+    ).
+
+solve_request(Request) :-
+    http_read_json(Request, JSONIn),
+    json_to_prolog(JSONIn, input_object(FieldMatrix, Shape)),
+    best_placement(FieldMatrix, Shape, _, _, ResultRotation, ResultColumn),
+    prolog_to_json(response_object(placement_object(ResultRotation, ResultColumn)), JSONObject),
+    reply_json(JSONObject).
