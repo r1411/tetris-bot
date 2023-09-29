@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Javascript Tetris</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div id="tetris">
+      <div id="menu">
+        <p id="start"><a href="javascript:play();">Нажмите ПРОБЕЛ, чтобы начать.</a></p>
+        <p><canvas id="upcoming"></canvas></p>
+        <p>Счет <span id="score">00000</span></p>
+        <p>Линий <span id="rows">0</span></p>
+      </div>
+      <canvas id="canvas">
+        Sorry, this example cannot be run because your browser does not support
+        the &lt;canvas&gt; element
+      </canvas>
+    </div>
+
+    <script src="stats.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
