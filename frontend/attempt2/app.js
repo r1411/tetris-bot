@@ -101,8 +101,7 @@ if (!window.requestAnimationFrame) {
     window.oRequestAnimationFrame ||
     window.msRequestAnimationFrame ||
     function (callback, element) {
-      //window.setTimeout(callback, 1000 / 60);
-      window.setTimeout(callback, 1000);
+      window.setTimeout(callback, 1000 / 60);
     };
 }
 
@@ -117,8 +116,7 @@ var KEY = { ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
   ctx = canvas.getContext("2d"),
   ucanvas = get("upcoming"),
   uctx = ucanvas.getContext("2d"),
-  //speed = { start: 0.6, decrement: 0.005, min: 0.1 }, // how long before piece drops by 1 row (seconds)
-  speed = { start: 0.6, decrement: 0.005, min: 0.4 },
+  speed = { start: 0.6, decrement: 0.005, min: 0.1 }, // how long before piece drops by 1 row (seconds)
   nx = 10, // width of tetris court (in blocks)
   ny = 20, // height of tetris court (in blocks)
   nu = 5; // width/height of upcoming preview (in blocks)
@@ -290,17 +288,22 @@ function run() {
   showStats(); // initialize FPS counter
   addEvents(); // attach keydown and resize events
 
-  var last = (now = timestamp());
+  var fpsInterval = 1000 / 60;
+  var then = Date.now();
+
   function frame() {
-    now = timestamp();
-    //update(Math.min(1, (now - last) / 1000.0)); // using requestAnimationFrame have to be able to handle large delta's caused when it 'hibernates' in a background or non-visible tab
-    update(0.01);
-    draw();
-    stats.update();
-    last = now;
     requestAnimationFrame(frame, canvas);
-    addRotatesToQuery(1);
-    addMovesToQuery(0);
+    now = Date.now();
+    elapsed = now - then;
+
+    if (elapsed > fpsInterval) {
+      update(Math.min(1, (now - then) / 1000.0)); // using requestAnimationFrame have to be able to handle large delta's caused when it 'hibernates' in a background or non-visible tab
+      draw();
+      stats.update();
+      addRotatesToQuery(1);
+      addMovesToQuery(0);
+      then = now - (elapsed % fpsInterval);
+    }
   }
 
   resize(); // setup all our sizing information
