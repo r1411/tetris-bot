@@ -26,20 +26,10 @@ function makeJsonToSend() {
   return JSON.stringify(jsonObject);
 }
 
-function mock_send_recieve() {
-  //имитация отправки
-  //ооо, ответ получили
-  received_json = {
-    response: {
-      rotation_variant: "shape_L_rot1",
-      column: 0,
-    },
-  };
-  return received_json;
-}
+
 
 function addMovesToQuery(target_column) {
-  let current_column = current.x;
+  /*let current_column = current.x;
   let difference = current_column - target_column;
   actions.push(DIR.DOWN);
   if (difference > 0) {
@@ -54,18 +44,77 @@ function addMovesToQuery(target_column) {
     actions.push(DIR.DOWN);
   } else {
     actions.push(DIR.DOWN);
+  }*/
+  setTimeout(1000);
+  if (current.type.name == "shape_I" && ((current.dir+1) ==2 || (current.dir +1)==4)){
+  target_column = target_column -1;
+  console.log("Для палки"+target_column)
   }
+  if(current.type.name = "shape_J" && (current.dir+1)==4){
+    target_column = target_column-1;
+  }
+  while (current.x!=target_column){
+    if (current.x<target_column){
+      move(DIR.RIGHT);
+    }
+    else{
+      move(DIR.LEFT);
+    }
+  }
+  console.log("mypos:" + current.x);
+  clearActions();
 }
 
 function addRotatesToQuery(target_rotation) {
-  let current_rotation = current.dir;
+  /*let current_rotation = current.dir;
   for (i = 0; i < 3; i++) {
     if (current.dir != target_rotation) {
       actions.push(DIR.UP);
     }
+  }*/
+  console.log("dir: "+(current.dir+1));
+  while ((current.dir+1) != target_rotation){
+    rotate();
   }
+  console.log("dir2: "+(current.dir+1));
 }
 
+
+function getProloguePosition(){
+  let state = {
+    "field_matrix":getMatrixFromGameField(),
+    "shape": getCurrentShape()
+  }
+  fetch('http://77.105.139.229/solve',{
+    method: 'post',
+    body: JSON.stringify(state),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }).then(function(response){
+    return response.text();
+  }).then(function(text){
+    console.log(text);
+    let column = JSON.parse(text).response.column;
+    let rotation_v = JSON.parse(text).response.rotation_variant;
+    console.log(column+" "+rotation_v)
+    let final_rot = rotation_v[rotation_v.length-1]
+    addRotatesToQuery(final_rot)
+    console.log((current.dir+1)+" ___ "+final_rot)
+    if ((current.dir+1) == final_rot){
+      console.log("Повороты совпали");
+      move(DIR.DOWN);
+      move(DIR.DOWN);
+      addMovesToQuery(column);
+    }
+    else{
+      console.log("Не совпали");
+    }
+    //return (column+" "+ rotation_v)
+  }).catch(function(error){
+    console.error(error)
+  })
+}
 //-------------------------------------------------------------------------
 // base helper methods
 //-------------------------------------------------------------------------
@@ -156,7 +205,7 @@ var dx,
 
 var i = {
   size: 4,
-  blocks: [0x0f00, 0x2222, 0x00f0, 0x4444],
+  blocks: [0xf000, 0x4444, 0xf000, 0x4444],
   color: "cyan",
   name: "shape_I",
 };
@@ -180,7 +229,7 @@ var o = {
 };
 var s = {
   size: 3,
-  blocks: [0x06c0, 0x8c40, 0x6c00, 0x4620],
+  blocks: [0x06c0, 0x8c40, 0x6c00,0x4620],
   color: "green",
   name: "shape_S",
 };
@@ -241,34 +290,13 @@ var pieces = [];
 function randomPiece() {
   if (pieces.length == 0)
     pieces = [
-      i,
-      i,
-      i,
-      i,
-      j,
-      j,
-      j,
-      j,
-      l,
-      l,
-      l,
-      l,
-      o,
-      o,
-      o,
-      o,
-      s,
-      s,
-      s,
-      s,
-      t,
-      t,
-      t,
-      t,
-      z,
-      z,
-      z,
-      z,
+      i,i,i,i,
+      l,l,l,l,
+      z,z,z,z,
+      s,s,s,s,
+      o,o,o,o,
+      t,t,t,t,
+      j,j,j,j
     ];
   var type = pieces.splice(random(0, pieces.length - 1), 1)[0];
   return {
@@ -300,8 +328,9 @@ function run() {
       update(Math.min(1, (now - then) / 1000.0)); // using requestAnimationFrame have to be able to handle large delta's caused when it 'hibernates' in a background or non-visible tab
       draw();
       stats.update();
-      addRotatesToQuery(1);
-      addMovesToQuery(0);
+      //let prologue_position = getProloguePosition();
+      //addRotatesToQuery(1);
+      //addMovesToQuery(prologue_position.column);
       then = now - (elapsed % fpsInterval);
     }
   }
@@ -419,9 +448,10 @@ function clearBlocks() {
 function clearActions() {
   actions = [];
 }
-function setCurrentPiece(piece) {
+function setCurrentPiece(piece){
   current = piece || randomPiece();
-
+  getProloguePosition();
+  //let prologue_position = JSON.parse(getProloguePosition()).response;
   invalidate();
 }
 function setNextPiece(piece) {
