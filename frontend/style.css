@@ -1,5 +1,7 @@
 body {
   font-family: Helvetica, sans-serif;
+  display: flex;
+  justify-content: space-around;
 }
 #tetris {
   margin: 1em auto;
@@ -51,6 +53,17 @@ body {
   position: absolute;
   bottom: 0em;
   right: 1em;
+}
+#meth_buttons{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+.tetromino_button{
+width: 100px;
+height: 100px;
+background: url(meth.jpg);
+font-size: 80px;
 }
 @media screen and (min-width: 0px) and (min-height: 0px) {
   #tetris {
@@ -178,3 +191,4 @@ body {
     height: 800px;
   }
 } /* 40px chunks */
+
