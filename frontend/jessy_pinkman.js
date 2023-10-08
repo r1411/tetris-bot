@@ -294,7 +294,6 @@ function getMatrixFromGameField() {
     //-------------------------------------------------------------------------
 
     function run() {
-      console.log("inside run");
       showStats(); // initialize FPS counter
       addEvents(); // attach keydown and resize events
 
@@ -303,22 +302,33 @@ function getMatrixFromGameField() {
         console.log("inside frame");
         now = timestamp();
         update(Math.min(1, (now - last) / 1000.0)); // using requestAnimationFrame have to be able to handle large delta's caused when it 'hibernates' in a background or non-visible tab
-        updateHuman(Math.min(1, (now - last) / 1000.0));
         draw();
-        drawHuman();
         stats.update();
         last = now;
         requestAnimationFrame(frame, canvas);
-
-        requestAnimationFrame(frame,canvas_human);
+        //requestAnimationFrame(frame,canvas_human);
       }
 
       resize(); // setup all our sizing information
       reset();
-      resetHuman();  // reset the per-game variables
       frame();  // start the first frame
 
+      function frameHuman(){
+        console.log("inside frameHuman");
+        now = timestamp();
+        updateHuman(Math.min(1, (now - last) / 1000.0));
+        drawHuman();
+        stats.update();
+        last = now;
+        //requestAnimationFrame(frame, canvas);
+        requestAnimationFrame(frameHuman,canvas_human);
+      }
+
+      resizeHuman();
+      resetHuman(); 
+      frameHuman();
     }
+    
 
     function showStats() {
       stats.domElement.id = 'stats';
@@ -326,7 +336,7 @@ function getMatrixFromGameField() {
     }
 
     function addEvents() {
-      document.addEventListener('keydown', keydown, false);
+      //document.addEventListener('keydown', keydown, false);
       document.addEventListener('keydown', keydownHuman, false);
       window.addEventListener('resize', resize, false);
     }
@@ -337,22 +347,26 @@ function getMatrixFromGameField() {
       ucanvas.width  = ucanvas.clientWidth;
       ucanvas.height = ucanvas.clientHeight;
 
-      canvas_human.width   = canvas_human.clientWidth;  // set canvas logical size equal to its physical size
-      canvas_human.height  = canvas_human.clientHeight; // (ditto)
-      ucanvas_human.width  = ucanvas_human.clientWidth;
-      ucanvas_human.height = ucanvas_human.clientHeight;
-
       dx = canvas.width  / nx; // pixel size of a single tetris block
       dy = canvas.height / ny; // (ditto)
 
       invalidate();
       invalidateNext();
+    }
+    
+    function resizeHuman(event) {
+      canvas_human.width   = canvas_human.clientWidth;  // set canvas logical size equal to its physical size
+      canvas_human.height  = canvas_human.clientHeight; // (ditto)
+      ucanvas_human.width  = ucanvas_human.clientWidth;
+      ucanvas_human.height = ucanvas_human.clientHeight;
 
+      dx = canvas_human.width  / nx; // pixel size of a single tetris block
+      dy = canvas_human.height / ny; // (ditto)
       invalidateHuman();
       invalidateNextHuman();
     }
 
-    function keydown(ev) {
+    /*function keydown(ev) {
       var handled = false;
       if (playing) {
         switch(ev.keyCode) {
@@ -369,7 +383,7 @@ function getMatrixFromGameField() {
       }
       if (handled)
         ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
-    }
+    }*/
 
     function keydownHuman(ev) {
       var handled = false;
@@ -379,11 +393,11 @@ function getMatrixFromGameField() {
           case KEY.RIGHT:  actions_human.push(DIR.RIGHT); handled = true; break;
           case KEY.UP:     actions_human.push(DIR.UP);    handled = true; break;
           case KEY.DOWN:   actions_human.push(DIR.DOWN);  handled = true; break;
-          case KEY.ESC:    lose();                  handled = true; break;
+          case KEY.ESC:    lose();     console.log("ESC_HUMAN");             handled = true; break;
         }
       }
       else if (ev.keyCode == KEY.SPACE) {
-        play();
+        play ();
         handled = true;
       }
       if (handled)
@@ -442,7 +456,7 @@ function getMatrixFromGameField() {
       clearBlocksHuman();
       clearRowsHuman();
       clearScoreHuman();
-      setCurrentPieceHuman(next);
+      setCurrentPieceHuman(next_human);
       setNextPieceHuman();
     }
 
@@ -556,6 +570,7 @@ function getMatrixFromGameField() {
         setNextPiece(randomPiece());
         clearActions();
         if (occupied(current.type, current.x, current.y, current.dir)) {
+          console.log("DROP")
           lose();
         }
       }
@@ -570,6 +585,8 @@ function getMatrixFromGameField() {
         setNextPieceHuman(randomPiece());
         clearActionsHuman();
         if (occupiedHuman(current_human.type, current_human.x, current_human.y, current_human.dir)) {
+          console.log(current_human.type + " X: " +current_human.x + " Y: " +current_human.y + " DIR: " + current_human.dir + " getblockhuman:" + getBlockHuman(current_human.x,current_human.y))
+          console.log("dropHuman")
           lose();
         }
       }
@@ -728,7 +745,7 @@ function getMatrixFromGameField() {
         uctx.strokeRect(0, 0, nu*dx - 1, nu*dy - 1);
         uctx.restore();
         invalid.next = false;
-        //getProloguePosition();
+        getProloguePosition();
       }
     }
 
