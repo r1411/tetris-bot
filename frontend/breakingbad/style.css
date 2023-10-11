@@ -2,6 +2,8 @@ body {
   font-family: Helvetica, sans-serif;
   display: flex;
   justify-content: space-around;
+  background: url(pollos.png);
+  background-size: cover;
 }
 #tetris {
   margin: 1em auto;
@@ -26,14 +28,14 @@ body {
 #canvas {
   display: inline-block;
   vertical-align: top;
-  background: url(texture.jpg);
+  background: url(walt.jpg);
   box-shadow: 10px 10px 10px #999;
   border: 2px solid #333;
 }
 #canvas_human{
   display: inline-block;
   vertical-align: top;
-  background: url(texture_human.jpg);
+  background: url(gustavo.jpg);
   box-shadow: 10px 10px 10px #999;
   border: 2px solid #333;
 }
@@ -106,7 +108,7 @@ body {
 .tetromino_button{
 width: 100px;
 height: 100px;
-background: url(meth.jpg);
+background: url('./meth.png') no-repeat top left;
 font-size: 80px;
 }
 @media screen and (min-width: 0px) and (min-height: 0px) {
