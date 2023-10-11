@@ -18,7 +18,6 @@ function getMatrixFromGameField() {
   }
 
   function addMovesToQuery(target_column) {
-    setTimeout(1000);
     if (current.type.name == "shape_I" && ((current.dir+1) ==2 || (current.dir +1)==4)){//если палка вертикальная
     target_column = target_column -1;
     console.log("Для палки"+target_column)
@@ -27,15 +26,7 @@ function getMatrixFromGameField() {
       target_column = target_column-1;
       console.log("Для JTL")
     }
-    while (current.x!=target_column){
-    setTimeout(500);
-      if (current.x<target_column){
-        move(DIR.RIGHT);
-      }
-      else{
-        move(DIR.LEFT);
-      }
-    }
+    current.x = target_column
     console.log("mypos:" + current.x);
     clearActions();
   }
@@ -43,10 +34,7 @@ function getMatrixFromGameField() {
 
   function addRotatesToQuery(target_rotation) {
     console.log("dir: "+(current.dir+1));
-    while ((current.dir+1) != target_rotation){
-      setTimeout(500);
-      rotate();
-    }
+    current.dir = target_rotation - 1;
     console.log("dir2: "+(current.dir+1));
   }
 
@@ -71,7 +59,6 @@ function getMatrixFromGameField() {
       let final_rot = rotation_v[rotation_v.length-1]
       addRotatesToQuery(final_rot)
       console.log((current.dir+1)+" ___ "+final_rot)
-      setTimeout(1500);
       if ((current.dir+1) == final_rot){
         console.log("Повороты совпали");
         addMovesToQuery(column);
