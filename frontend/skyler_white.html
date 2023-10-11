@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Javascript Tetris</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div id="tetris">
+      <div id="menu">
+        <p id="start"><a href="javascript:play();">Нажмите ПРОБЕЛ, чтобы начать.</a></p>
+        <p><canvas id="upcoming"></canvas></p>
+        <p>Счет <span id="score">00000</span></p>
+        <p>Линий <span id="rows">0</span></p>
+      </div>
+      <canvas id="canvas">
+        Sorry, this example cannot be run because your browser does not support
+        the &lt;canvas&gt; element
+      </canvas>
+    </div>
+
+    <div id="tetris_human">
+      <div id="menu_human">
+        <p id="start_human"><a href="javascript:play();">Нажмите ПРОБЕЛ, чтобы начать.</a></p>
+        <p><canvas id="upcoming_human"></canvas></p>
+        <p>Счет <span id="score_human">00000</span></p>
+        <p>Линий <span id = "rows_human">0</span></p>
+      </div>
+      <canvas id = "canvas_human">
+        Sorry, this example cannot be run because your browser does not support
+        the &lt;canvas&gt; element
+      </canvas>
+    </div>
+    <a href="./index.html">В меню</a>
+    <script src="stats.js"></script>
+    <script src="skyler_white.js"></script>
+  </body>
+</html>
