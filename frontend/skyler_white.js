@@ -291,22 +291,42 @@ function getMatrixFromGameField() {
     // start with 4 instances of each piece and
     // pick randomly until the 'bag is empty'
     //-----------------------------------------
+    var bag_of_pieces = [];
+    var bag_of_pieces_human = [];
+
+
     var pieces = [];
     function randomPiece() {
-      if (pieces.length == 0)
-        pieces = [i,i,i,i,j,j,j,j,l,l,l,l,o,o,o,o,s,s,s,s,t,t,t,t,z,z,z,z];
-      var type = pieces.splice(random(0, pieces.length-1), 1)[0];
+      //if (pieces.length == 0)
+      //  pieces = [i,i,i,i,j,j,j,j,l,l,l,l,o,o,o,o,s,s,s,s,t,t,t,t,z,z,z,z];
+      //var type = pieces.splice(random(0, pieces.length-1), 1)[0];
+      if (bag_of_pieces.length == 0)
+        fillTheBag();
+      var type = bag_of_pieces.splice(0,1)[0];
       return { type: type, dir: DIR.UP, x: 4, y: 0 };
     }
 
     var pieces_human = [];
     function randomPiece_human() {
-      if (pieces_human.length == 0)
-        pieces_human = [i,i,i,i,j,j,j,j,l,l,l,l,o,o,o,o,s,s,s,s,t,t,t,t,z,z,z,z];
-      var type = pieces_human.splice(random(0, pieces_human.length-1), 1)[0];
+      //if (pieces_human.length == 0)
+      //  pieces_human = [i,i,i,i,j,j,j,j,l,l,l,l,o,o,o,o,s,s,s,s,t,t,t,t,z,z,z,z];
+      //var type = pieces_human.splice(random(0, pieces_human.length-1), 1)[0];
+      if(bag_of_pieces_human.length == 0)
+        fillTheBag();
+        var type = bag_of_pieces_human.splice(0,1)[0];
       return { type: type, dir: DIR.UP, x: 4, y: 0 };
     }
 
+
+    function fillTheBag(){
+      var all_pieces = [i,j,l,o,s,t,z];
+      for(l =0;l<1000;l++){
+        bag_of_pieces.push(all_pieces[Math.floor((Math.random()*all_pieces.length))]);
+      }
+      bag_of_pieces_human = bag_of_pieces.slice();
+    }
+    
+    
 
     //-------------------------------------------------------------------------
     // GAME LOOP
@@ -430,7 +450,7 @@ function getMatrixFromGameField() {
     // GAME LOGIC
     //-------------------------------------------------------------------------
 
-    function play() { hide('start'); hide('start_human'); reset(); reset_human(); playing = true;  }
+    function play() { fillTheBag(); hide('start'); hide('start_human'); reset(); reset_human(); playing = true;  }
     function lose() { show('start'); show('start_human'); setVisualScore(); setVisualScore_human(); playing = false; }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
@@ -672,7 +692,7 @@ function getMatrixFromGameField() {
     }
 
 
-    function removeLineHuman(n) {
+    function removeLine_human(n) {
       var x, y;
       for(y = n ; y >= 0 ; --y) {
         for(x = 0 ; x < nx_human ; ++x)
