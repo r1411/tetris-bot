@@ -359,16 +359,21 @@ count_holes(FieldMatrix, FieldWidth, FieldHeight, Result) :-
 % FieldWidth - Ширина игрового поля
 % FieldHeight - Высота игрового поля
 % Score - Выходная переменная, оценка. Чем выше, тем лучше.
-field_score(NewField, OldField, FieldWidth, FieldHeight, Score) :-
+% ShapeVariant - Вариант ротации фигуры 
+% ColumnIdx - Столбец, где находится самый левый пиксель фигуры
+field_score(NewField, OldField, FieldWidth, FieldHeight, ShapeVariant, Column, Score) :-
     count_holes(OldField, FieldWidth, FieldHeight, OldHolesCount),
     count_holes(NewField, FieldWidth, FieldHeight, NewHolesCount),
     garbage_height(OldField, FieldWidth, FieldHeight, OldGarbageHeight),
     garbage_height(NewField, FieldWidth, FieldHeight, NewGarbageHeight),
     full_lines_count(NewField, FieldWidth, NewFullLines),
+    get_descent_count(OldField, ShapeVariant, Column, DescentCount),
+
     FactorHoles is (OldHolesCount - NewHolesCount) * 100,
-    FactorGarbage is (OldGarbageHeight  - NewGarbageHeight) * 10,
+    FactorGarbage is (OldGarbageHeight  - NewGarbageHeight) * 30,
     FactorFullLines is NewFullLines * 80,
-    Score is FactorHoles + FactorGarbage + FactorFullLines.
+    FactorDescent is (DescentCount / FieldHeight) * 12,
+    Score is FactorHoles + FactorGarbage + FactorFullLines + FactorDescent.
 
 
 % Получить все возможные конечные позиции фигуры и их оценку
@@ -385,7 +390,7 @@ all_placements(FieldMatrix, Shape, ResultField, Score, ShapeVariant, PlacementCo
     shape_variant(Shape, ShapeVariant),
     get_valid_placement_columns(ShapeVariant, FieldWidth, PlacementColumn),
     place_shape(FieldMatrix, FieldWidth, FieldHeight, ShapeVariant, PlacementColumn, ResultField),
-    field_score(ResultField, FieldMatrix, FieldWidth, FieldHeight, Score).
+    field_score(ResultField, FieldMatrix, FieldWidth, FieldHeight, ShapeVariant, PlacementColumn, Score).
 
 
 % Выбрать лучший вариант поля с наибольшим количеством очков 
