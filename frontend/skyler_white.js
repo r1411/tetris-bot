@@ -12,19 +12,6 @@ function getMatrixFromGameField() {
     }
     return matrix;
   }
-
-  function getMatrixFromGameFieldHuman() {
-    var x, y, block;
-    let matrix = Array(ny)
-      .fill()
-      .map(() => Array(nx).fill(0));
-    for (y = 0; y < ny; y++) {
-      for (x = 0; x < nx; x++) {
-        if ((block = getBlockHuman(x, y))) matrix[y][x] = 1;
-      }
-    }
-    return matrix;
-  }
   
   function getCurrentShape() {
     return current.type.name;
@@ -134,17 +121,24 @@ function getMatrixFromGameField() {
         DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
         stats   = new Stats(),
         canvas  = get('canvas'),
-        canvas_human = get('canvas_human'),
         ctx     = canvas.getContext('2d'),
-        ctx_human = canvas_human.getContext('2d'),
         ucanvas = get('upcoming'),
-        ucanvas_human = get('upcoming_human'),
         uctx    = ucanvas.getContext('2d'),
-        uctx_human = ucanvas_human.getContext('2d'),
         speed   = { start: 0.6, decrement: 0.005, min: 0.1 }, // how long before piece drops by 1 row (seconds)
         nx      = 10, // width of tetris court (in blocks)
         ny      = 20, // height of tetris court (in blocks)
         nu      = 5;  // width/height of upcoming preview (in blocks)
+
+      var KEY_human     = { ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
+      DIR_human     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
+      canvas_human  = get('canvas_human'),
+      ctx_human     = canvas_human.getContext('2d'),
+      ucanvas_human = get('upcoming_human'),
+      uctx_human    = ucanvas_human.getContext('2d'),
+      speed_human   = { start: 0.6, decrement: 0.005, min: 0.1 }, // how long before piece drops by 1 row (seconds)
+      nx_human      = 10, // width of tetris court (in blocks)
+      ny_human      = 20, // height of tetris court (in blocks)
+      nu_human      = 5;  // width/height of upcoming preview (in blocks)
 
     //-------------------------------------------------------------------------
     // game variables (initialized during reset)
@@ -152,23 +146,27 @@ function getMatrixFromGameField() {
 
     var dx, dy,        // pixel size of a single tetris block
         blocks,        // 2 dimensional array (nx*ny) representing tetris court - either empty block or occupied by a 'piece'
-        blocks_human,
         actions,       // queue of user actions (inputs)
-        actions_human,
         playing,       // true|false - game is in progress
         dt,            // time since starting this game
-        dt_human,
         current,       // the current piece
-        current_human,
         next,          // the next piece
-        next_human,
         score,         // the current score
-        score_human,
         vscore,        // the currently displayed score (it catches up to score in small chunks - like a spinning slot machine)
-        vscore_human,
         rows,          // number of completed rows in the current game
-        rows_human,
         step;          // how long before current piece drops by 1 row
+
+  var dx_human, dy_human,        // pixel size of a single tetris block
+        blocks_human,        // 2 dimensional array (nx*ny) representing tetris court - either empty block or occupied by a 'piece'
+        actions_human,       // queue of user actions (inputs)
+        playing_human,       // true|false - game is in progress
+        dt_human,            // time since starting this game
+        current_human,       // the current piece
+        next_human,          // the next piece
+        score_human,         // the current score
+        vscore_human,        // the currently displayed score (it catches up to score in small chunks - like a spinning slot machine)
+        rows_human,          // number of completed rows in the current game
+        step_human;          // how long before current piece drops by 1 row
 
     //-------------------------------------------------------------------------
     // tetris pieces
@@ -246,11 +244,10 @@ function getMatrixFromGameField() {
       }
     }
 
-    //ЗДЕСЬ НЕТ ИЗМЕНЕНИЙ, УТОЧНИТЬ, ТАК ЛИ ЭТО
-    function eachblockHuman(type, x, y, dir, fn) {
-      var bit, result, row = 0, col = 0, blocks_human = type.blocks[dir];
+    function eachblock_human(type, x, y, dir, fn) {
+      var bit, result, row = 0, col = 0, blocks = type.blocks[dir];
       for(bit = 0x8000 ; bit > 0 ; bit = bit >> 1) {
-        if (blocks_human & bit) {
+        if (blocks & bit) {
           fn(x + col, y + row);
         }
         if (++col === 4) {
@@ -272,24 +269,23 @@ function getMatrixFromGameField() {
       return result;
     }
 
-    function unoccupied(type, x, y, dir) {
-      return !occupied(type, x, y, dir);
-    }
-
-
-    function occupiedHuman(type, x, y, dir) {
+    function occupied_human(type, x, y, dir) {
       var result = false
-      console.log(type+" "+x+" "+y);
-      eachblockHuman(type, x, y, dir, function(x, y) {
-        if ((x < 0) || (x >= nx) || (y < 0) || (y >= ny) || getBlockHuman(x,y))
+      eachblock_human(type, x, y, dir, function(x, y) {
+        if ((x < 0) || (x >= nx_human) || (y < 0) || (y >= ny_human) || getBlock_human(x,y))
           result = true;
       });
       return result;
     }
 
-    function unoccupiedHuman(type, x, y, dir) {
-      return !occupiedHuman(type, x, y, dir);
+    function unoccupied(type, x, y, dir) {
+      return !occupied(type, x, y, dir);
     }
+
+    function unoccupied_human(type, x, y, dir) {
+      return !occupied_human(type, x, y, dir);
+    }
+
 
     //-----------------------------------------
     // start with 4 instances of each piece and
@@ -303,49 +299,55 @@ function getMatrixFromGameField() {
       return { type: type, dir: DIR.UP, x: 4, y: 0 };
     }
 
+    var pieces_human = [];
+    function randomPiece_human() {
+      if (pieces_human.length == 0)
+        pieces_human = [i,i,i,i,j,j,j,j,l,l,l,l,o,o,o,o,s,s,s,s,t,t,t,t,z,z,z,z];
+      var type = pieces_human.splice(random(0, pieces_human.length-1), 1)[0];
+      return { type: type, dir: DIR.UP, x: 4, y: 0 };
+    }
+
 
     //-------------------------------------------------------------------------
     // GAME LOOP
     //-------------------------------------------------------------------------
 
     function run() {
+
       showStats(); // initialize FPS counter
       addEvents(); // attach keydown and resize events
 
       var last = now = timestamp();
-
       function frame() {
-        console.log("inside frame");
         now = timestamp();
         update(Math.min(1, (now - last) / 1000.0)); // using requestAnimationFrame have to be able to handle large delta's caused when it 'hibernates' in a background or non-visible tab
         draw();
         stats.update();
         last = now;
         requestAnimationFrame(frame, canvas);
-        //requestAnimationFrame(frame,canvas_human);
       }
 
       resize(); // setup all our sizing information
-      reset();
+      reset();  // reset the per-game variables
       frame();  // start the first frame
 
+
+      addEvents_human(); // attach keydown and resize events
+
       var last_human = now_human = timestamp();
-      function frameHuman(){
-        console.log("inside frameHuman");
+      function frame_human() {
         now_human = timestamp();
-        updateHuman(Math.min(1, (now_human - last_human) / 1000.0));
-        drawHuman();
-        stats.update();
+        update_human(Math.min(1, (now_human - last_human) / 1000.0)); // using requestAnimationFrame have to be able to handle large delta's caused when it 'hibernates' in a background or non-visible tab
+        draw_human();
         last_human = now_human;
-        //requestAnimationFrame(frame, canvas);
-        requestAnimationFrame(frameHuman,canvas_human);
+        requestAnimationFrame(frame_human, canvas_human);
       }
 
-      resizeHuman();
-      resetHuman(); 
-      frameHuman();
+      resize_human(); // setup all our sizing information
+      reset_human();  // reset the per-game variables
+      frame_human();  // start the first frame
+
     }
-    
 
     function showStats() {
       stats.domElement.id = 'stats';
@@ -353,9 +355,13 @@ function getMatrixFromGameField() {
     }
 
     function addEvents() {
-      //document.addEventListener('keydown', keydown, false);
-      document.addEventListener('keydown', keydownHuman, false);
+      document.addEventListener('keydown', keydown, false);
       window.addEventListener('resize', resize, false);
+    }
+
+    function addEvents_human() {
+      document.addEventListener('keydown', keydown_human, false);
+      window.addEventListener('resize', resize_human, false);
     }
 
     function resize(event) {
@@ -363,29 +369,28 @@ function getMatrixFromGameField() {
       canvas.height  = canvas.clientHeight; // (ditto)
       ucanvas.width  = ucanvas.clientWidth;
       ucanvas.height = ucanvas.clientHeight;
-
       dx = canvas.width  / nx; // pixel size of a single tetris block
       dy = canvas.height / ny; // (ditto)
-
       invalidate();
       invalidateNext();
     }
-    
-    function resizeHuman(event) {
+
+    function resize_human(event) {
       canvas_human.width   = canvas_human.clientWidth;  // set canvas logical size equal to its physical size
       canvas_human.height  = canvas_human.clientHeight; // (ditto)
       ucanvas_human.width  = ucanvas_human.clientWidth;
       ucanvas_human.height = ucanvas_human.clientHeight;
-
-      dx = canvas_human.width  / nx; // pixel size of a single tetris block
-      dy = canvas_human.height / ny; // (ditto)
-      invalidateHuman();
-      invalidateNextHuman();
+      dx_human = canvas_human.width  / nx_human; // pixel size of a single tetris block
+      dy_human = canvas_human.height / ny_human; // (ditto)
+      invalidate_human();
+      invalidateNext_human();
     }
 
-    /*function keydown(ev) {
+    function keydown(ev) {
       var handled = false;
-      if (playing) {
+      handled = true;
+      ev.preventDefault();
+      /*if (playing) {
         switch(ev.keyCode) {
           case KEY.LEFT:   actions.push(DIR.LEFT);  handled = true; break;
           case KEY.RIGHT:  actions.push(DIR.RIGHT); handled = true; break;
@@ -399,10 +404,10 @@ function getMatrixFromGameField() {
         handled = true;
       }
       if (handled)
-        ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
-    }*/
+        ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)*/
+    }
 
-    function keydownHuman(ev) {
+    function keydown_human(ev) {
       var handled = false;
       if (playing) {
         switch(ev.keyCode) {
@@ -410,11 +415,11 @@ function getMatrixFromGameField() {
           case KEY.RIGHT:  actions_human.push(DIR.RIGHT); handled = true; break;
           case KEY.UP:     actions_human.push(DIR.UP);    handled = true; break;
           case KEY.DOWN:   actions_human.push(DIR.DOWN);  handled = true; break;
-          case KEY.ESC:    lose();     console.log("ESC_HUMAN");             handled = true; break;
+          case KEY.ESC:    lose();                  handled = true; break;
         }
       }
       else if (ev.keyCode == KEY.SPACE) {
-        play ();
+        play();
         handled = true;
       }
       if (handled)
@@ -425,8 +430,8 @@ function getMatrixFromGameField() {
     // GAME LOGIC
     //-------------------------------------------------------------------------
 
-    function play() { hide('start'); hide('start_human'); reset(); resetHuman(); playing = true;  }
-    function lose() { show('start'); show('start_human'); setVisualScore(); setVisualScoreHuman(); playing = false; }
+    function play() { hide('start'); hide('start_human'); reset(); reset_human(); playing = true;  }
+    function lose() { show('start'); show('start_human'); setVisualScore(); setVisualScore_human(); playing = false; }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
@@ -443,40 +448,39 @@ function getMatrixFromGameField() {
     function setNextPiece(piece)    { next    = piece || randomPiece(); invalidateNext(); }
 
 
-    function setVisualScoreHuman(n)      { vscore_human = n || score_human; invalidateScoreHuman(); }
-    function setScoreHuman(n)            { score_human = n; setVisualScoreHuman(n);  }
-    function addScoreHuman(n)            { score_human = score_human + n;   }
-    function clearScoreHuman()           { setScoreHuman(0); }
-    function clearRowsHuman()            { setRowsHuman(0); }
-    function setRowsHuman(n)             { rows_human = n; step = Math.max(speed.min, speed.start - (speed.decrement*rows_human)); invalidateRowsHuman(); }
-    function addRowsHuman(n)             { setRowsHuman(rows_human + n); }
-    function getBlockHuman(x,y)               { return (blocks_human && blocks_human[x] ? blocks_human[x][y] : null); }
-    function setBlockHuman(x,y,type)     { blocks_human[x] = blocks_human[x] || []; blocks_human[x][y] = type; invalidateHuman(); }
-    function clearBlocksHuman()          { blocks_human = []; invalidateHuman(); }
-    function clearActionsHuman()         { actions_human = []; }
-    function setCurrentPieceHuman(piece) { current_human = piece || randomPiece(); invalidateHuman();     }
-    function setNextPieceHuman(piece)    { next_human    = piece || randomPiece(); invalidateNextHuman(); }
-
+    function setVisualScore_human(n)      { vscore_human = n || score_human; invalidateScore_human(); }
+    function setScore_human(n)            { score_human = n; setVisualScore_human(n);  }
+    function addScore_human(n)            { score_human = score_human + n;   }
+    function clearScore_human()           { setScore_human(0); }
+    function clearRows_human()            { setRows_human(0); }
+    function setRows_human(n)             { rows_human = n; step_human = Math.max(speed_human.min, speed_human.start - (speed_human.decrement*rows_human)); invalidateRows_human(); }
+    function addRows_human(n)             { setRows_human(rows_human + n); }
+    function getBlock_human(x,y)          { return (blocks_human && blocks_human[x] ? blocks_human[x][y] : null); }
+    function setBlock_human(x,y,type)     { blocks_human[x] = blocks_human[x] || []; blocks_human[x][y] = type; invalidate_human(); }
+    function clearBlocks_human()          { blocks_human = []; invalidate_human(); }
+    function clearActions_human()         { actions_human = []; }
+    function setCurrentPiece_human(pieces_human) { current_human = pieces_human || randomPiece_human(); invalidate_human();}
+    function setNextPiece_human(pieces_human)    { next_human = pieces_human || randomPiece_human(); invalidateNext_human(); }
 
     function reset() {
       dt = 0;
       clearActions();
-      clearBlocks();
+      clearBlocks();  
       clearRows();
       clearScore();
       setCurrentPiece(next);
       setNextPiece();
     }
-    function resetHuman() {
-      dt_human = 0;
-      clearActionsHuman();
-      clearBlocksHuman();
-      clearRowsHuman();
-      clearScoreHuman();
-      setCurrentPieceHuman(next_human);
-      setNextPieceHuman();
-    }
 
+    function reset_human() {
+      dt_human = 0;
+      clearActions_human();
+      clearBlocks_human();  
+      clearRows_human();
+      clearScore_human();
+      setCurrentPiece_human(next_human);
+      setNextPiece_human();
+    }
 
     function update(idt) {
       if (playing) {
@@ -491,15 +495,15 @@ function getMatrixFromGameField() {
       }
     }
 
-    function updateHuman(idt) {
+    function update_human(idt) {
       if (playing) {
         if (vscore_human < score_human)
-          setVisualScoreHuman(vscore_human + 1);
-        handleHuman(actions_human.shift());
+          setVisualScore_human(vscore_human + 1);
+        handle_human(actions_human.shift());
         dt_human = dt_human + idt;
-        if (dt_human > step) {
-          dt_human = dt_human - step;
-          dropHuman();
+        if (dt_human > step_human) {
+          dt_human = dt_human - step_human;
+          drop_human();
         }
       }
     }
@@ -513,12 +517,12 @@ function getMatrixFromGameField() {
       }
     }
 
-    function handleHuman(action) {
+    function handle_human(action) {
       switch(action) {
-        case DIR.LEFT:  moveHuman(DIR.LEFT);  break;
-        case DIR.RIGHT: moveHuman(DIR.RIGHT); break;
-        case DIR.UP:    rotateHuman();        break;
-        case DIR.DOWN:  dropHuman();          break;
+        case DIR.LEFT:  move_human(DIR.LEFT);  break;
+        case DIR.RIGHT: move_human(DIR.RIGHT); break;
+        case DIR.UP:    rotate_human();        break;
+        case DIR.DOWN:  drop_human();          break;
       }
     }
 
@@ -542,17 +546,17 @@ function getMatrixFromGameField() {
       }
     }
 
-    function moveHuman(dir) {
+    function move_human(dir) {
       var x = current_human.x, y = current_human.y;
       switch(dir) {
         case DIR.RIGHT: x = x + 1; break;
         case DIR.LEFT:  x = x - 1; break;
         case DIR.DOWN:  y = y + 1; break;
       }
-      if (unoccupiedHuman(current_human.type, x, y, current_human.dir)) {
+      if (unoccupied_human(current_human.type, x, y, current_human.dir)) {
         current_human.x = x;
         current_human.y = y;
-        invalidateHuman();
+        invalidate_human();
         //console.log("TYPE: "+current.type.name+" POS_x: "+current.x+ " ROT:"+current.dir)
         return true;
       }
@@ -570,11 +574,11 @@ function getMatrixFromGameField() {
       }
     }
 
-    function rotateHuman() {
+    function rotate_human() {
       var newdir = (current_human.dir == DIR.MAX ? DIR.MIN : current_human.dir + 1);
-      if (unoccupiedHuman(current_human.type, current_human.x, current_human.y, newdir)) {
+      if (unoccupied_human(current.type, current_human.x, current_human.y, newdir)) {
         current_human.dir = newdir;
-        invalidateHuman();
+        invalidate_human();
       }
     }
 
@@ -587,22 +591,20 @@ function getMatrixFromGameField() {
         setNextPiece(randomPiece());
         clearActions();
         if (occupied(current.type, current.x, current.y, current.dir)) {
-          console.log("DROP")
           lose();
         }
       }
     }
 
-    function dropHuman() {
-      if (!moveHuman(DIR.DOWN)) {
-        addScoreHuman(10);
-        dropPieceHuman();
-        removeLinesHuman();
-        setCurrentPieceHuman(next);
-        setNextPieceHuman(randomPiece());
-        clearActionsHuman();
-        if (occupiedHuman(current_human.type, current_human.x, current_human.y, current_human.dir)) {
-          console.log("DROP")
+    function drop_human() {
+      if (!move_human(DIR.DOWN)) {
+        addScore_human(10);
+        dropPiece_human();
+        removeLines_human();
+        setCurrentPiece_human(next_human);
+        setNextPiece_human(randomPiece_human());
+        clearActions_human();
+        if (occupied_human(current_human.type, current_human.x, current_human.y, current_human.dir)) {
           lose();
         }
       }
@@ -614,9 +616,9 @@ function getMatrixFromGameField() {
       });
     }
 
-    function dropPieceHuman() {
-      eachblockHuman(current_human.type, current_human.x, current_human.y, current_human.dir, function(x, y) {
-        setBlockHuman(x, y, current_human.type);
+    function dropPiece_human() {
+      eachblock_human(current_human.type, current_human.x, current_human.y, current_human.dir, function(x, y) {
+        setBlock_human(x, y, current_human.type);
       });
     }
 
@@ -640,6 +642,27 @@ function getMatrixFromGameField() {
       }
     }
 
+
+    function removeLines_human() {
+      var x, y, complete, n = 0;
+      for(y = ny_human ; y > 0 ; --y) {
+        complete = true;
+        for(x = 0 ; x < nx_human ; ++x) {
+          if (!getBlock_human(x, y))
+            complete = false;
+        }
+        if (complete) {
+          removeLine_human(y);
+          y = y + 1; // recheck same line
+          n++;
+        }
+      }
+      if (n > 0) {
+        addRows_human(n);
+        addScore_human(100*Math.pow(2,n-1)); // 1: 100, 2: 200, 3: 400, 4: 800
+      }
+    }
+
     function removeLine(n) {
       var x, y;
       for(y = n ; y >= 0 ; --y) {
@@ -648,34 +671,14 @@ function getMatrixFromGameField() {
       }
     }
 
-    function removeLinesHuman() {
-      var x, y, complete, n = 0;
-      for(y = ny ; y > 0 ; --y) {
-        complete = true;
-        for(x = 0 ; x < nx ; ++x) {
-          if (!getBlockHuman(x, y))
-            complete = false;
-        }
-        if (complete) {
-          removeLineHuman(y);
-          y = y + 1; // recheck same line
-          n++;
-        }
-      }
-      if (n > 0) {
-        addRowsHuman(n);
-        addScoreHuman(100*Math.pow(2,n-1)); // 1: 100, 2: 200, 3: 400, 4: 800
-      }
-    }
 
     function removeLineHuman(n) {
       var x, y;
       for(y = n ; y >= 0 ; --y) {
-        for(x = 0 ; x < nx ; ++x)
-          setBlockHuman(x, y, (y == 0) ? null : getBlockHuman(x, y-1));
+        for(x = 0 ; x < nx_human ; ++x)
+          setBlock_human(x, y, (y == 0) ? null : getBlock_human(x, y-1));
       }
     }
-
     //-------------------------------------------------------------------------
     // RENDERING
     //-------------------------------------------------------------------------
@@ -688,10 +691,10 @@ function getMatrixFromGameField() {
     function invalidateScore()    { invalid.score  = true; }
     function invalidateRows()     { invalid.rows   = true; }
 
-    function invalidateHuman()         { invalid_human.court_human  = true; }
-    function invalidateNextHuman()     { invalid_human.next_human   = true; }
-    function invalidateScoreHuman()    { invalid_human.score_human  = true; }
-    function invalidateRowsHuman()     { invalid_human.rows_human   = true; }
+    function invalidate_human()         { invalid_human.court  = true; }
+    function invalidateNext_human()     { invalid_human.next   = true; }
+    function invalidateScore_human()    { invalid_human.score  = true; }
+    function invalidateRows_human()     { invalid_human.rows   = true; }
 
     function draw() {
       ctx.save();
@@ -704,14 +707,14 @@ function getMatrixFromGameField() {
       ctx.restore();
     }
 
-    function drawHuman() {
+    function draw_human() {
       ctx_human.save();
       ctx_human.lineWidth = 1;
       ctx_human.translate(0.5, 0.5); // for crisp 1px black lines
-      drawCourtHuman();
-      drawNextHuman();
-      drawScoreHuman();
-      drawRowsHuman();
+      drawCourt_human();
+      drawNext_human();
+      drawScore_human();
+      drawRows_human();
       ctx_human.restore();
     }
 
@@ -732,23 +735,22 @@ function getMatrixFromGameField() {
       }
     }
 
-    function drawCourtHuman() {
-      if (invalid_human.court_human) {
+    function drawCourt_human() {
+      if (invalid_human.court) {
         ctx_human.clearRect(0, 0, canvas_human.width, canvas_human.height);
         if (playing)
-          drawPieceHuman(ctx_human, current_human.type, current_human.x, current_human.y, current_human.dir);
+          drawPiece_human(ctx_human, current_human.type, current_human.x, current_human.y, current_human.dir);
         var x, y, block;
-        for(y = 0 ; y < ny ; y++) {
-          for (x = 0 ; x < nx ; x++) {
-            if (block = getBlockHuman(x,y))
-              drawBlockHuman(ctx_human, x, y, block.color);
+        for(y = 0 ; y < ny_human ; y++) {
+          for (x = 0 ; x < nx_human; x++) {
+            if (block = getBlock_human(x,y))
+              drawBlock_human(ctx_human, x, y, block.color);
           }
         }
-        ctx_human.strokeRect(0, 0, nx*dx - 1, ny*dy - 1); // court boundary
-        invalid_human.court_human = false;
+        ctx_human.strokeRect(0, 0, nx_human*dx_human - 1, ny_human*dy_human - 1); // court boundary
+        invalid_human.court = false;
       }
     }
-
 
     function drawNext() {
       if (invalid.next) {
@@ -765,21 +767,19 @@ function getMatrixFromGameField() {
       }
     }
 
-
-    function drawNextHuman() {
-      if (invalid_human.next_human) {
-        var padding = (nu - next_human.type.size) / 2; // half-arsed attempt at centering next piece display
+    function drawNext_human() {
+      if (invalid_human.next) {
+        var padding = (nu_human - next_human.type.size) / 2; // half-arsed attempt at centering next piece display
         uctx_human.save();
         uctx_human.translate(0.5, 0.5);
-        uctx_human.clearRect(0, 0, nu*dx, nu*dy);
-        drawPieceHuman(uctx_human, next_human.type, padding, padding, next_human.dir);
+        uctx_human.clearRect(0, 0, nu_human*dx_human, nu_human*dy_human);
+        drawPiece_human(uctx_human, next_human.type, padding, padding, next_human.dir);
         uctx_human.strokeStyle = 'black';
-        uctx_human.strokeRect(0, 0, nu*dx - 1, nu*dy - 1);
+        uctx_human.strokeRect(0, 0, nu_human*dx_human - 1, nu_human*dy_human - 1);
         uctx_human.restore();
-        invalid_human.next_human = false;
+        invalid_human.next = false;
       }
     }
-
 
     function drawScore() {
       if (invalid.score) {
@@ -788,10 +788,10 @@ function getMatrixFromGameField() {
       }
     }
 
-    function drawScoreHuman() {
-      if (invalid_human.score_human) {
+    function drawScore_human() {
+      if (invalid_human.score) {
         html('score_human', ("00000" + Math.floor(vscore_human)).slice(-5));
-        invalid_human.score_human = false;
+        invalid_human.score = false;
       }
     }
 
@@ -802,22 +802,22 @@ function getMatrixFromGameField() {
       }
     }
 
-    function drawRowsHuman() {
-      if (invalid_human.rows_human) {
+    function drawRows_human() {
+      if (invalid_human.rows) {
         html('rows_human', rows_human);
-        invalid_human.rows_human = false;
+        invalid_human.rows = false;
       }
     }
-//Вот в этиъ функциях с параметрами подумать про ctx
+
     function drawPiece(ctx, type, x, y, dir) {
       eachblock(type, x, y, dir, function(x, y) {
         drawBlock(ctx, x, y, type.color);
       });
     }
 
-    function drawPieceHuman(ctx, type, x, y, dir) {
-      eachblockHuman(type, x, y, dir, function(x, y) {
-        drawBlockHuman(ctx, x, y, type.color);
+    function drawPiece_human(ctx_human, type, x, y, dir) {
+      eachblock_human(type, x, y, dir, function(x, y) {
+        drawBlock_human(ctx_human, x, y, type.color);
       });
     }
 
@@ -827,11 +827,10 @@ function getMatrixFromGameField() {
       ctx.strokeRect(x*dx, y*dy, dx, dy)
     }
 
-
-    function drawBlockHuman(ctx, x, y, color) {
-      ctx.fillStyle = color;
-      ctx.fillRect(x*dx, y*dy, dx, dy);
-      ctx.strokeRect(x*dx, y*dy, dx, dy)
+    function drawBlock_human(ctx_human, x, y, color) {
+      ctx_human.fillStyle = color;
+      ctx_human.fillRect(x*dx_human, y*dy_human, dx_human, dy_human);
+      ctx_human.strokeRect(x*dx_human, y*dy_human, dx_human, dy_human)
     }
 
     //-------------------------------------------------------------------------
