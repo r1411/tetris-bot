@@ -325,23 +325,25 @@ full_lines_count(FieldMatrix, FieldWidth, Result) :-
 
 % Является ли ячейка матрицы по индексу [Row, Col] дырой
 % FieldMatrix - Матрица игрового поля
+% FieldHeight - Высота игрового поля
 % Row - Индекс строки
 % Col - Индекс столбца
-is_hole(FieldMatrix, Row, Col) :-
-    Row2 is Row + 1,
-    cell_value(FieldMatrix, Row, Col, ValueTop), ValueTop is 1,
-    cell_value(FieldMatrix, Row2, Col, ValueBottom), ValueBottom is 0, !.
+is_hole(FieldMatrix, FieldHeight, Row, Col) :-
+    Row > 0, Row < FieldHeight,
+    RowUp is Row - 1,
+    cell_value(FieldMatrix, Row, Col, ValueBottom), ValueBottom is 0,
+    cell_value(FieldMatrix, RowUp, Col, ValueTop), ((ValueTop is 1); (is_hole(FieldMatrix, FieldHeight, RowUp, Col))), !.
 
 
 % Возвращает true столько раз, сколько дырок на поле
 % FieldMatrix - Матрица игрового поля
 % FieldWidth - Ширина игрового поля
 % FieldHeight - Высота игрового поля
-find_hole(FieldMatrix, FieldWidth, FieldHeight) :-
-    WidthLimit is FieldWidth - 1, HeightLimit is FieldHeight - 2,
+find_hole(FieldMatrix, FieldWidth, FieldHeight) :- %TODO изменить range
+    WidthLimit is FieldWidth - 1, HeightLimit is FieldHeight - 1,
     range(RowIdx, 0, HeightLimit), range(ColIdx, 0, WidthLimit),
     Row is RowIdx, Col is ColIdx,
-    is_hole(FieldMatrix, Row, Col).
+    is_hole(FieldMatrix, FieldHeight, Row, Col).
 
 
 % Получить количество дырок на игровом поле
@@ -369,11 +371,12 @@ field_score(NewField, OldField, FieldWidth, FieldHeight, ShapeVariant, Column, S
     full_lines_count(NewField, FieldWidth, NewFullLines),
     get_descent_count(OldField, ShapeVariant, Column, DescentCount),
 
-    FactorHoles is (OldHolesCount - NewHolesCount) * 100,
+    FactorHoles is (OldHolesCount - NewHolesCount) * 85,
     FactorGarbage is (OldGarbageHeight  - NewGarbageHeight) * 30,
-    FactorFullLines is NewFullLines * 80,
-    FactorDescent is (DescentCount / FieldHeight) * 12,
-    Score is FactorHoles + FactorGarbage + FactorFullLines + FactorDescent.
+    FactorFullLines is NewFullLines * 110,
+    FactorDescent is (DescentCount / FieldHeight) * 30,
+    ((DescentCount < 5, FactorGameOver is 1500 / (DescentCount + 1)); (DescentCount >= 5, FactorGameOver is 0)),
+    Score is FactorHoles + FactorGarbage + FactorFullLines + FactorDescent - FactorGameOver.
 
 
 % Получить все возможные конечные позиции фигуры и их оценку
@@ -411,7 +414,7 @@ best_placement(FieldMatrix, Shape, MaxResultField, MaxScore, MaxShapeVariant, Ma
 
 :- json_object error_object(error:any).
 :- json_object input_object(field_matrix:any, shape:any).
-:- json_object placement_object(rotation_variant:any, column:any).
+:- json_object placement_object(rotation_variant:any, column:any, score: any).
 :- json_object response_object(response:any).
 
 :- initialization
@@ -429,6 +432,6 @@ home_page(_Request) :-
 solve_request(Request) :-
     http_read_json(Request, JSONIn),
     json_to_prolog(JSONIn, input_object(FieldMatrix, Shape)),
-    best_placement(FieldMatrix, Shape, _, _, ResultRotation, ResultColumn),
-    prolog_to_json(response_object(placement_object(ResultRotation, ResultColumn)), JSONObject),
+    best_placement(FieldMatrix, Shape, _, ResultScore, ResultRotation, ResultColumn),
+    prolog_to_json(response_object(placement_object(ResultRotation, ResultColumn, ResultScore)), JSONObject),
     reply_json(JSONObject).
