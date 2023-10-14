@@ -27,8 +27,20 @@ function getMatrixFromGameField() {
       console.log("Для JTL")
     }
     current.x = target_column
-    console.log("mypos:" + current.x);
+
+    if(get("turbo").checked){
+    let timerId = setInterval(() => instantlyMoveDown(timerId), 80);
+    }
+    
+    //console.log("mypos:" + current.x);
     clearActions();
+  }
+
+  function instantlyMoveDown(timerID){
+    move(DIR.DOWN);
+    if(!unoccupied(current.type,current.x,current.y+1,current.dir) || !(get("turbo").checked)){
+    setTimeout(() => { clearInterval(timerID); }, 30);
+    }
   }
 
 
@@ -62,8 +74,8 @@ function getMatrixFromGameField() {
       if ((current.dir+1) == final_rot){
         console.log("Повороты совпали");
         addMovesToQuery(column);
-        move(DIR.DOWN);
-        move(DIR.DOWN);
+        //move(DIR.DOWN);
+        //move(DIR.DOWN);
       }
       else{
         console.log("Не совпали");
@@ -590,6 +602,10 @@ function getMatrixFromGameField() {
     }
 
     function drop() {
+      if(get("turbo").checked){
+        let timerId = setInterval(() => instantlyMoveDown(timerId), 50);
+        }
+
       if (!move(DIR.DOWN)) {
         addScore(10);
         dropPiece();
