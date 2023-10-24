@@ -602,10 +602,6 @@ function getMatrixFromGameField() {
     }
 
     function drop() {
-      if(get("turbo").checked){
-        let timerId = setInterval(() => instantlyMoveDown(timerId), 50);
-        }
-
       if (!move(DIR.DOWN)) {
         addScore(10);
         dropPiece();
